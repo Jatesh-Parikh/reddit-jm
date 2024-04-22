@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useFormStatus } from "react-dom";
 
-export function SubmitButton() {
+export function SubmitButton({ text }: { text: string }) {
   const { pending } = useFormStatus();
   return (
     <>
@@ -13,7 +13,25 @@ export function SubmitButton() {
           <Loader2 className="mr-2 w-4 h-4 animate-spin" /> Please Wait
         </Button>
       ) : (
-        <Button type="submit">Change Username</Button>
+        <Button type="submit">{text}</Button>
+      )}
+    </>
+  );
+}
+
+export function SaveButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <>
+      {pending ? (
+        <Button className="mt-2 w-full" disabled size={"sm"}>
+          <Loader2 className="mr-2 h-3 w-3 animate-spin" /> Please Wait
+        </Button>
+      ) : (
+        <Button type="submit" size={"sm"} className="mt-2 w-full">
+          Save
+        </Button>
       )}
     </>
   );
