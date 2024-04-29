@@ -62,7 +62,7 @@ export async function createCommunity(prevState: any, formData: FormData) {
       },
     });
 
-    return redirect("/");
+    return redirect(`/r/${data.name}`);
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === "P2002") {
@@ -134,7 +134,7 @@ export async function CreatePost(
     },
   });
 
-  return redirect("/");
+  return redirect(`/post/${data.id}`);
 }
 
 export async function handleVote(formData: FormData) {
@@ -186,4 +186,25 @@ export async function handleVote(formData: FormData) {
   });
 
   return revalidatePath("/");
+}
+
+export async function createComment(formData: FormData) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+
+  if (!user) {
+    return redirect("/api/auth/login");
+  }
+
+  const comment = formData.get("comment") as string;
+  const postId = formData.get("postId") as string;
+
+  const data = await prisma.comment.create({
+    data: {
+      text: comment,
+      userId: user.id,
+      postId: postId,
+    },
+  });
+  revalidatePath(`/post/${postId}`);
 }

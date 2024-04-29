@@ -16,6 +16,7 @@ interface iAppProps {
   userName: string;
   imageString: string | null;
   voteCount: number;
+  commentAmount: number;
 }
 
 export function PostCard({
@@ -26,6 +27,7 @@ export function PostCard({
   title,
   userName,
   voteCount,
+  commentAmount,
 }: iAppProps) {
   return (
     <Card className="flex relative overflow-hidden">
@@ -50,11 +52,11 @@ export function PostCard({
           </Link>
           <p className="text-xs text-muted-foreground">
             Posted by:
-            <span className="hover:text-primary">u/jateshparikh</span>
+            <span className="hover:text-primary">u/{userName}</span>
           </p>
         </div>
         <div className="px-2">
-          <Link href={"/"}>
+          <Link href={`/post/${id}`}>
             <h1 className="font-medium mt-1 text-lg">{title}</h1>
           </Link>
         </div>
@@ -77,7 +79,7 @@ export function PostCard({
           <div className="flex items-center gap-x-1">
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
             <p className="text-muted-foreground font-medium text-xs">
-              31 comments
+              {commentAmount} comments
             </p>
           </div>
 

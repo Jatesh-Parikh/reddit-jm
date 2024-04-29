@@ -11,8 +11,10 @@ import { PostCard } from "./components/PostCard";
 import { Suspense } from "react";
 import { SuspenseCard } from "./components/SuspenseCard";
 import Pagination from "./components/Pagination";
+import { unstable_noStore as noStore } from "next/cache";
 
 async function getData(searchParam: string) {
+  noStore();
   const [count, data] = await prisma.$transaction([
     prisma.post.count(),
     prisma.post.findMany({
@@ -24,6 +26,7 @@ async function getData(searchParam: string) {
         textContent: true,
         createdAt: true,
         imageString: true,
+        Comment: { select: { id: true } },
         User: {
           select: {
             userName: true,
@@ -55,7 +58,7 @@ export default function Home({
     <div className="max-w-[1000px] mx-auto flex gap-x-10 mt-4 mb-10">
       <div className="w-[65%] flex flex-col gap-y-5">
         <CreatePostCard />
-        <Suspense fallback={<SuspenseCard />}>
+        <Suspense fallback={<SuspenseCard />} key={searchParams.page}>
           <ShowItems searchParams={searchParams} />
         </Suspense>
       </div>
@@ -105,6 +108,7 @@ async function ShowItems({ searchParams }: { searchParams: { page: string } }) {
           title={post.title}
           key={post.id}
           userName={post.User?.userName as string}
+          commentAmount={post.Comment.length}
           voteCount={post.Vote.reduce((acc, vote) => {
             if (vote.voteType === "UP") return acc + 1;
             if (vote.voteType === "DOWN") return acc - 1;

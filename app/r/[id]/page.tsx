@@ -1,4 +1,7 @@
 import { updateSubDescription } from "@/app/actions";
+import { CreatePostCard } from "@/app/components/CreatePostCard";
+import Pagination from "@/app/components/Pagination";
+import { PostCard } from "@/app/components/PostCard";
 import { SubDescriptionForm } from "@/app/components/SubDescriptionForm";
 import { SaveButton } from "@/app/components/SubmitButtons";
 import prisma from "@/app/lib/db";
@@ -7,37 +10,104 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { Cake } from "lucide-react";
+import { Cake, FileQuestion } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 
-async function getData(name: string) {
-  const data = await prisma.subreddit.findUnique({
-    where: {
-      name: name,
-    },
-    select: {
-      name: true,
-      createdAt: true,
-      description: true,
-      userId: true,
-    },
-  });
-  return data;
+async function getData(name: string, searchParam: string) {
+  noStore();
+  const [count, data] = await prisma.$transaction([
+    prisma.post.count({
+      where: {
+        subName: name,
+      },
+    }),
+    prisma.subreddit.findUnique({
+      where: {
+        name: name,
+      },
+      select: {
+        name: true,
+        createdAt: true,
+        description: true,
+        userId: true,
+        posts: {
+          take: 10,
+          skip: searchParam ? (Number(searchParam) - 1) * 10 : 0,
+          select: {
+            Comment: { select: { id: true } },
+            id: true,
+            title: true,
+            imageString: true,
+            textContent: true,
+            Vote: {
+              select: {
+                userId: true,
+                voteType: true,
+              },
+            },
+            User: {
+              select: {
+                userName: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+  return { data, count };
 }
 
 export default async function SubRedditRoute({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: { page: string };
 }) {
-  const data = await getData(params.id);
+  const { data, count } = await getData(params.id, searchParams.page);
   const { getUser } = getKindeServerSession();
   const user = await getUser();
   return (
-    <div className="max-w-[1000px] mx-auto flex gap-x-10 mt-4">
+    <div className="max-w-[1000px] mx-auto flex gap-x-10 mt-4 mb-10">
       <div className="w-[65%] flex flex-col gap-y-5">
-        <h1>Hello from the post section</h1>
+        <CreatePostCard />
+
+        {data?.posts.length === 0 ? (
+          <div className="flex min-h-[300px] flex-col justify-center items-center rounded-md border border-dashed p-8 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <FileQuestion className="h-8 w-8 text-primary" />
+            </div>
+
+            <h2 className="mt-6 text-xl font-semibold">
+              No posts have been created yet
+            </h2>
+          </div>
+        ) : (
+          <>
+            {data?.posts.map((post) => (
+              <PostCard
+                key={post.id}
+                id={post.id}
+                imageString={post.imageString}
+                subName={data.name}
+                title={post.title}
+                userName={post.User?.userName as string}
+                commentAmount={post.Comment.length}
+                jsonContent={post.textContent}
+                voteCount={post.Vote.reduce((acc, vote) => {
+                  if (vote.voteType === "UP") return acc + 1;
+                  if (vote.voteType === "DOWN") return acc - 1;
+
+                  return acc;
+                }, 0)}
+              />
+            ))}
+            <Pagination totalPages={Math.ceil(count / 10)} />
+          </>
+        )}
       </div>
 
       <div className="w-[35%]">
